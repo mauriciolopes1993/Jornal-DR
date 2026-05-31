@@ -126,7 +126,16 @@ exports.geminiCopywriterAgent = onDocumentCreated({
   console.log(`[Gemini Copywriter] Lapidando HYPE para: ${titulo}`);
 
   // Fetch configs from Firestore
-  let systemInstruction = "Você é um Copy Chief de Resposta Direta focado em alto CTR, ganchos de curiosidade extrema e narrativas de mecanismo único, evitando termos que infrijam o compliance do Meta Ads.";
+  let baseSystemInstruction = `Você é um Copy Chief Sênior de Direct Response focado em alto CTR, ganchos de curiosidade extrema e narrativas de mecanismo único.
+Para o campo 'angulo_comercial' (Resumo), você DEVE obrigatoriamente gerar um texto longo e rico em formatação Markdown (parágrafos, negritos e tópicos), dividido nas seguintes seções:
+
+## ANÁLISE MACRO
+Explique os detalhes ocultos da notícia, o comportamento do público e por que essa informação é um estopim psicológico agora.
+
+## APLICAÇÃO EM TRAFEGO & VSL
+Explique cirurgicamente como o usuário pode transformar essa notícia em um ângulo de anúncio (Meta Ads/Native) para tracionar tráfego frio e, principalmente, como usar esse fato como elemento de prova, quebra de padrão ou "Mecanismo Único" dentro de uma VSL (Video Sales Letter) para explodir a conversão.`;
+
+  let finalSystemInstruction = baseSystemInstruction;
   let regrasCompliance = "";
   let exemplosVencedores = "";
 
@@ -135,7 +144,7 @@ exports.geminiCopywriterAgent = onDocumentCreated({
     if (configDoc.exists) {
       const configData = configDoc.data();
       if (configData.system_instruction) {
-        systemInstruction = configData.system_instruction;
+        finalSystemInstruction += `\n\n[DIRETRIZES PERSONALIZADAS DO USUÁRIO - INCORPORE AO SEU TOM DE VOZ E ANÁLISE]:\n${configData.system_instruction}`;
       }
       if (configData.regras_compliance) {
         regrasCompliance = configData.regras_compliance;
@@ -148,10 +157,10 @@ exports.geminiCopywriterAgent = onDocumentCreated({
     console.error("[Gemini Copywriter] Erro ao buscar configurações, usando defaults:", err);
   }
 
-  let userContent = `Nicho: ${nicho}\nMercado: ${mercado}\nManchete Original: "${titulo}"\n\nInstruções Obrigatórias:\n1. Traduza o título e o lead imediatamente para o Português do Brasil com foco em legibilidade de mercado (title_pt).\n2. Infira uma nota (hypeScore) de 0 a 10 baseada na velocidade do hype da notícia e seu potencial de monetização no tráfego direto.\n3. Defina um ângulo_comercial como "Resumo", explicando cirurgicamente a oportunidade de mercado.`;
+  let userContent = `Nicho: ${nicho}\nMercado: ${mercado}\nManchete Original: "${titulo}"\n\nInstruções Obrigatórias:\n1. Traduza o título e o lead imediatamente para o Português do Brasil com foco em legibilidade de mercado (title_pt).\n2. Infira uma nota (hypeScore) de 0 a 10 baseada na velocidade do hype da notícia e seu potencial de monetização no tráfego direto.\n3. Defina um angulo_comercial extenso como "Resumo", aplicando Markdown e as seções ordenadas.`;
   
   if (regrasCompliance) {
-    userContent += `\n\nRegras de Compliance Adicionais:\n${regrasCompliance}`;
+    userContent += `\n\nRegras de Compliance Adicionais (Evite infrações no Meta Ads):\n${regrasCompliance}`;
   }
   
   if (exemplosVencedores) {
@@ -165,7 +174,10 @@ exports.geminiCopywriterAgent = onDocumentCreated({
         title_pt: { type: Type.STRING },
         hypeScore: { type: Type.INTEGER },
         gargalo_resolvido: { type: Type.STRING },
-        angulo_comercial: { type: Type.STRING },
+        angulo_comercial: { 
+          type: Type.STRING,
+          description: "Texto longo rico em Markdown, contento obrigatoriamente as seções ## ANÁLISE MACRO e ## APLICAÇÃO EM TRAFEGO & VSL"
+        },
         ganchos_meta_ads: {
           type: Type.ARRAY,
           items: { type: Type.STRING }
@@ -178,7 +190,7 @@ exports.geminiCopywriterAgent = onDocumentCreated({
       model: 'gemini-2.5-flash',
       contents: userContent,
       config: {
-        systemInstruction: systemInstruction,
+        systemInstruction: finalSystemInstruction,
         responseMimeType: "application/json",
         responseSchema: responseSchema,
         temperature: 0.7,
