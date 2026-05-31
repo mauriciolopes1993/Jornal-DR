@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "noticia": {
+      "title": "Noticia",
+      "description": "Feed of news and trends",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier"
+        },
+        "data_publicacao": {
+          "type": "object",
+          "description": "Publication timestamp"
+        },
+        "nicho": {
+          "type": "string",
+          "description": "Market niche"
+        },
+        "mercado": {
+          "type": "string",
+          "description": "Market identifier (EUA or BR)"
+        },
+        "noticia_titulo": {
+          "type": "string",
+          "description": "Bombastic headline"
+        },
+        "noticia_url": {
+          "type": "string",
+          "description": "Source URL"
+        },
+        "trends_keywords": {
+          "type": "array",
+          "description": "List of trending keywords"
+        },
+        "trends_porcentagem": {
+          "type": "string",
+          "description": "Hype percentage"
+        },
+        "copy_angulo": {
+          "type": "string",
+          "description": "Sales angle analysis"
+        },
+        "copy_ganchos": {
+          "type": "array",
+          "description": "List of ready-to-use hooks"
+        }
+      }
+    },
+    "allowed_client": {
+      "title": "Allowed Client",
+      "description": "Emails allowed to access the dashboard",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "firestore": {
+    "/noticias/{noticiaId}": {
+      "schema": {
+        "$ref": "#/entities/noticia"
+      },
+      "description": "The main news collection fed by cloud functions"
+    },
+    "/allowed_clients/{emailId}": {
+      "schema": {
+        "$ref": "#/entities/allowed_client"
+      },
+      "description": "Whitelisted email addresses for clients"
+    }
+  }
+}
