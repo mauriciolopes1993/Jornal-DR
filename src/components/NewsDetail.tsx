@@ -41,14 +41,15 @@ export default function NewsDetail({ noticia, onBack }: NewsDetailProps) {
           {/* Bloco 1: O Fato e a Fonte (Origem) */}
           <div className="p-6 border-b border-slate-100 bg-slate-50">
             <div className="flex items-center space-x-2 mb-4">
-              <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded uppercase font-bold">
-                {noticia.mercado}
+              <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded uppercase font-bold tracking-wide">
+                {noticia.mercado === 'US' || noticia.mercado.includes('EUA') ? '🇺🇸 EUA' : 
+                 noticia.mercado === 'BR' || noticia.mercado.includes('BR') ? '🇧🇷 BR' : noticia.mercado}
               </span>
               <span className="text-[10px] uppercase font-bold text-slate-400">O Fato</span>
             </div>
             
             <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-4 leading-tight">
-              {noticia.noticia_titulo}
+              {noticia.title_pt || noticia.noticia_titulo}
             </h1>
 
             {noticia.trends_keywords && noticia.trends_keywords.length > 0 && (
@@ -62,7 +63,7 @@ export default function NewsDetail({ noticia, onBack }: NewsDetailProps) {
             )}
 
             <a 
-              href={noticia.noticia_url} 
+              href={noticia.originalUrl || noticia.noticia_url} 
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-xs font-bold text-blue-600 underline"
@@ -73,10 +74,10 @@ export default function NewsDetail({ noticia, onBack }: NewsDetailProps) {
           </div>
 
           <div className="p-6 space-y-8">
-            {/* Bloco 2: A Direção de Cópia (Inteligência) */}
+            {/* Bloco 2: O Resumo (Inteligência) */}
             <section>
               <label className="text-[10px] font-black text-orange-600 uppercase tracking-widest block mb-3">
-                <span className="mr-1">🧠</span> Direção de Cópia (DeepSeek Analysis)
+                <span className="mr-1">🧠</span> Resumo
               </label>
               {noticia.copy_angulo ? (
                 <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-lg">

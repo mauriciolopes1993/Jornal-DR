@@ -65,7 +65,7 @@ exports.jornalDoDrEngine = onSchedule({
 
         for (const item of itensValidos) {
           // Gerar ID seguro transformando barras e encoding
-          const docId = Buffer.from(item.link).toString('base64').replace(/\\//g, '_').substring(0, 50);
+          const docId = Buffer.from(item.link).toString('base64').replace(/\//g, '_').substring(0, 50);
           const docRef = db.collection("noticias").doc(docId);
           
           const docSnap = await docRef.get();
@@ -74,13 +74,27 @@ exports.jornalDoDrEngine = onSchedule({
           const dataPub = item.pubDate ? admin.firestore.Timestamp.fromDate(new Date(item.pubDate)) : admin.firestore.Timestamp.now();
           const randomHype = `+${Math.floor(Math.random() * (900 - 250 + 1)) + 250}% HYPE`;
 
+          // Tentar extrair URL de imagem
+          let thumbnailUrl = "";
+          if (item.enclosure && item.enclosure.url) {
+            thumbnailUrl = item.enclosure.url;
+          } else if (item.content) {
+            const imgMatch = item.content.match(/<img[^>]+src="([^">]+)"/);
+            if (imgMatch) thumbnailUrl = imgMatch[1];
+          }
+
           await docRef.set({
             id: docId,
             data_publicacao: dataPub,
+            publishedAt: dataPub,
             nicho: nicho,
             mercado: mercado,
             noticia_titulo: item.title,
             noticia_url: item.link,
+            originalUrl: item.link,
+            thumbnailUrl: thumbnailUrl,
+            title_pt: "",
+            hypeScore: 0,
             trends_keywords: [nicho, mercado === 'US' ? 'trending' : 'tendências'],
             trends_porcentagem: randomHype,
             copy_angulo: "", 
@@ -134,7 +148,7 @@ exports.geminiCopywriterAgent = onDocumentCreated({
     console.error("[Gemini Copywriter] Erro ao buscar configurações, usando defaults:", err);
   }
 
-  let userContent = `Nicho: ${nicho}\nMercado: ${mercado}\nManchete Original: "${titulo}"`;
+  let userContent = `Nicho: ${nicho}\nMercado: ${mercado}\nManchete Original: "${titulo}"\n\nInstruções Obrigatórias:\n1. Traduza o título e o lead imediatamente para o Português do Brasil com foco em legibilidade de mercado (title_pt).\n2. Infira uma nota (hypeScore) de 0 a 10 baseada na velocidade do hype da notícia e seu potencial de monetização no tráfego direto.\n3. Defina um ângulo_comercial como "Resumo", explicando cirurgicamente a oportunidade de mercado.`;
   
   if (regrasCompliance) {
     userContent += `\n\nRegras de Compliance Adicionais:\n${regrasCompliance}`;
@@ -148,6 +162,8 @@ exports.geminiCopywriterAgent = onDocumentCreated({
     const responseSchema = {
       type: Type.OBJECT,
       properties: {
+        title_pt: { type: Type.STRING },
+        hypeScore: { type: Type.INTEGER },
         gargalo_resolvido: { type: Type.STRING },
         angulo_comercial: { type: Type.STRING },
         ganchos_meta_ads: {
@@ -155,7 +171,7 @@ exports.geminiCopywriterAgent = onDocumentCreated({
           items: { type: Type.STRING }
         }
       },
-      required: ["gargalo_resolvido", "angulo_comercial", "ganchos_meta_ads"]
+      required: ["title_pt", "hypeScore", "gargalo_resolvido", "angulo_comercial", "ganchos_meta_ads"]
     };
 
     const response = await ai.models.generateContent({
@@ -172,6 +188,8 @@ exports.geminiCopywriterAgent = onDocumentCreated({
     const aiResult = JSON.parse(response.text);
 
     return snapshot.ref.update({
+      title_pt: aiResult.title_pt || "",
+      hypeScore: aiResult.hypeScore || 0,
       copy_angulo: aiResult.angulo_comercial || "",
       copy_ganchos: aiResult.ganchos_meta_ads || [],
       gargalo: aiResult.gargalo_resolvido || ""
