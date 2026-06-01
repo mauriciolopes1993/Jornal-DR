@@ -6,7 +6,7 @@ import type { Noticia } from './types';
 import LoginScreen from './components/LoginScreen';
 import NewsCard from './components/NewsCard';
 import NewsDetail from './components/NewsDetail';
-import { LogOut, Newspaper, Flame, Heart, Filter, X } from 'lucide-react';
+import { LogOut, Newspaper, Flame, Heart, Filter, X, User, Edit2, CreditCard, Info, Phone, TrendingUp, Shield } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const NICHOS = ['🔥 Emagrecimento', '🩸 Diabetes', '🧠 Memória', '⚡ Disfunção Erétil'];
@@ -37,6 +37,7 @@ const MOCK_DATA = [
 ];
 
 export default function App() {
+  const [currentView, setCurrentView] = useState<'home' | 'profile'>('home');
   const [user, setUser] = useState<any>(undefined);
   const [noticias, setNoticias] = useState<Noticia[]>(MOCK_DATA as any);
   const [loading, setLoading] = useState(true);
@@ -224,31 +225,195 @@ export default function App() {
     setShowOnlyFavorites(false);
   };
 
+  const renderProfileView = () => (
+    <>
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-500">
+            <User className="w-5 h-5" />
+          </div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Minha Conta</h1>
+        </div>
+        <p className="text-slate-500 text-sm pl-[52px]">Gerencie suas informações pessoais e assinatura</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Coluna da Esquerda */}
+        <div className="space-y-6">
+          {/* Card Informações Pessoais */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
+                <User className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Informações Pessoais</h2>
+                <p className="text-sm text-slate-500">Seus dados de cadastro</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Nome Completo</p>
+                <p className="font-semibold text-slate-900">Maurício Lopes</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Email</p>
+                <p className="font-semibold text-slate-900">mauriciolopes130693@gmail.com</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Telefone</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-slate-900">+5534996337785</p>
+                  <Edit2 className="w-3.5 h-3.5 text-slate-400 cursor-pointer hover:text-slate-600 transition-colors" />
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Data de Cadastro</p>
+                <p className="font-semibold text-slate-900">24/09/2025</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Suporte */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+             <div className="flex items-center gap-2 mb-2">
+              <Shield className="w-5 h-5 text-orange-500" />
+              <h2 className="text-xl font-bold text-slate-900">Suporte</h2>
+            </div>
+            <p className="text-sm text-slate-500 mb-6">Precisa de ajuda? Entre em contato conosco</p>
+            
+            <a 
+              href="https://wa.me/5534996337785" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-4 rounded-lg transition-colors border border-emerald-700"
+            >
+              <Phone className="w-4 h-4" />
+              Chamar Suporte no WhatsApp
+            </a>
+            <p className="text-xs text-center text-slate-400 mt-3">Clique para abrir o WhatsApp e falar com nosso suporte</p>
+          </div>
+        </div>
+
+        {/* Coluna da Direita */}
+        <div>
+          {/* Card Status da Assinatura */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-full flex flex-col">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Status da Assinatura</h2>
+                <p className="text-sm text-slate-500">Informações sobre sua assinatura</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-4 flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center">
+                  <X className="w-3.5 h-3.5 text-slate-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Status</p>
+                  <p className="text-[11px] text-slate-500">Estado atual da assinatura</p>
+                </div>
+              </div>
+              <span className="bg-slate-100 text-slate-800 text-xs font-semibold px-3 py-1 rounded-full border border-slate-200">
+                Free
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6 border-b border-slate-100 pb-6 mb-6">
+              <div>
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Plano Atual</p>
+                <p className="font-semibold text-slate-900 text-lg">Plano Free</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Valor</p>
+                <p className="font-semibold text-slate-900 text-lg">R$ 0,00 / mês</p>
+              </div>
+            </div>
+
+            <div className="bg-blue-50/50 border border-blue-100/50 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-2 mb-1.5 text-blue-700">
+                <Info className="w-4 h-4" />
+                <p className="font-semibold text-sm">Assinatura Free</p>
+              </div>
+              <p className="text-sm text-blue-600/80 leading-relaxed font-medium">
+                Você está utilizando o plano gratuito. Para desbloquear todas as funcionalidades e ofertas, considere fazer upgrade para um plano premium.
+              </p>
+            </div>
+
+            <div className="mt-auto pt-2">
+              <button className="w-full flex items-center justify-center gap-2 bg-[#ff5f00] hover:bg-orange-600 text-white font-medium py-3.5 px-4 rounded-lg transition-colors shadow-sm">
+                <TrendingUp className="w-5 h-5" />
+                Fazer Upgrade para o Premium
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-[#f1f5f9] pb-12 font-sans text-slate-900">
       {/* Navbar Minimalista */}
-      <nav className="bg-slate-900 border-b border-slate-800 text-slate-300 sticky top-0 z-10">
+      <nav className="bg-slate-900 border-b border-slate-800 text-slate-300 sticky top-0 z-10 w-full">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center text-white font-bold">DR</div>
-            <h1 className="text-xl font-bold text-white tracking-tight italic">JORNAL DO DR</h1>
+          <div className="flex items-center cursor-pointer" onClick={() => setCurrentView('home')}>
+            <img 
+              src="https://i.ibb.co/YFscctCY/Radar-do-Roi-1.webp" 
+              alt="Radar do ROI" 
+              className="h-12 w-auto object-contain" 
+            />
           </div>
-          <button 
-            onClick={logout}
-            className="text-slate-400 hover:text-white transition-colors flex items-center text-sm font-medium"
-          >
-            <LogOut className="w-4 h-4 mr-1.5" />
-            Sair
-          </button>
+          <div className="flex items-center space-x-6">
+            {currentView === 'profile' && (
+              <>
+                <button 
+                  onClick={() => setCurrentView('home')} 
+                  className={`text-sm font-medium transition-colors ${currentView === 'home' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
+                >
+                  Home
+                </button>
+                <a 
+                  href="https://wa.me/5534996337785" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+                >
+                  Ajuda
+                </a>
+              </>
+            )}
+            <button 
+              onClick={logout}
+              className="text-slate-400 hover:text-white transition-colors flex items-center text-sm font-medium"
+            >
+              <LogOut className="w-4 h-4 mr-1.5" />
+              Sair
+            </button>
+            <button
+              onClick={() => setCurrentView('profile')}
+              className="w-10 h-10 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-700 font-bold hover:bg-slate-300 transition-colors"
+            >
+              ML
+            </button>
+          </div>
         </div>
       </nav>
 
       <main className="max-w-5xl mx-auto px-4 mt-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Dashboard de Tendências</h1>
-            <p className="text-sm text-slate-500 mt-1">Sinais sociais e notícias em tempo real.</p>
-          </div>
+        {currentView === 'profile' ? renderProfileView() : (
+          <>
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">O Feed Secreto do Tráfego Direto</h1>
+                <p className="text-sm text-slate-500 mt-1">Monitore as tendências, novidades e notícias dos EUA e Brasil em tempo real.</p>
+              </div>
           
           {/* Mock Button for Devs only (would normally be hidden in prod, keeping it for the requested MVP UX test) */}
           <button 
@@ -331,7 +496,7 @@ export default function App() {
                ${showOnlyFavorites ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white text-slate-600 border-slate-200 hover:border-red-300'}
              `}
           >
-             Apenas Favoritos <Heart className="w-4 h-4" fill={showOnlyFavorites ? "currentColor" : "none"} color={showOnlyFavorites ? "currentColor" : "#ef4444"} />
+             Meus Favoritos <Heart className="w-4 h-4" fill={showOnlyFavorites ? "currentColor" : "none"} color={showOnlyFavorites ? "currentColor" : "#ef4444"} />
           </button>
           
           {filterPeriod === 'CUSTOM' && (
@@ -368,11 +533,10 @@ export default function App() {
             ))}
           </div>
         ) : filteredNoticias.length === 0 ? (
-          <div className="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-500">
+          <div className="flex flex-col items-center justify-center text-center py-12">
             <Newspaper className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-base font-medium text-slate-900 mb-1">Nenhum insight disponível</h3>
-            <p className="text-sm pb-4">Os bots ainda não detectaram anomalias hiper-relevantes para <strong>{activeNicho}</strong> hoje.</p>
-            <p className="text-xs text-slate-400">Verifique novamente no próximo ciclo de sincronização.</p>
+            <h3 className="text-xl font-bold text-slate-800">O mercado está silencioso para {activeNicho} hoje!</h3>
+            <p className="text-base text-slate-500 max-w-lg mt-2 leading-relaxed">Não encontramos novos picos de atenção em massa nas fontes globais hoje. Fique tranquilo: nossa central de inteligência continua ativa e, assim que um novo hype estourar, ele aparecerá direto no topo do seu feed.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -389,6 +553,8 @@ export default function App() {
               />
             ))}
           </div>
+        )}
+        </>
         )}
       </main>
     </div>
