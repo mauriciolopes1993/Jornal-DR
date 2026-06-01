@@ -130,7 +130,7 @@ export default function NewsCard({ noticia, onClick, isFavorited = false, onTogg
 
           <div className="flex flex-col items-end text-[10px] text-slate-400">
             <span className="uppercase font-semibold truncate max-w-[120px]">
-              Fonte: {new URL(verNoticiaUrl || 'https://google.com').hostname.replace('www.', '')}
+              {noticia.author ? `Autor: @${noticia.author}` : `Fonte: ${new URL(verNoticiaUrl || 'https://google.com').hostname.replace('www.', '')}`}
             </span>
             <span className="capitalize text-slate-500 font-medium mt-0.5">
               {relativeTime}

@@ -16,4 +16,10 @@ export interface Noticia {
   originalUrl?: string;
   publishedAt?: any;
   hypeScore?: number;
+  
+  // Customizados Twitter
+  author?: string;
+  texto_traduzido?: string;
+  texto_original?: string;
+  gargalo?: string;
 }

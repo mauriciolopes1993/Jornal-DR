@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ExternalLink, Copy, Check } from 'lucide-react';
+import Markdown from 'react-markdown';
 import type { Noticia } from '../types';
 
 interface NewsDetailProps {
@@ -80,10 +81,10 @@ export default function NewsDetail({ noticia, onBack }: NewsDetailProps) {
                 <span className="mr-1">🧠</span> Resumo
               </label>
               {noticia.copy_angulo ? (
-                <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-lg">
-                  <p className="text-sm leading-relaxed text-slate-800 font-medium whitespace-pre-wrap">
-                    {noticia.copy_angulo}
-                  </p>
+                <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-lg max-w-none">
+                  <div className="text-sm leading-relaxed text-slate-800 font-medium whitespace-pre-wrap markdown-body">
+                    <Markdown>{noticia.copy_angulo}</Markdown>
+                  </div>
                 </div>
               ) : (
                 <div className="bg-orange-50/50 border-l-4 border-orange-300 p-6 rounded-r-lg flex flex-col sm:flex-row items-center sm:items-start gap-4">

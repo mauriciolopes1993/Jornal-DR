@@ -6,7 +6,7 @@ import type { Noticia } from './types';
 import LoginScreen from './components/LoginScreen';
 import NewsCard from './components/NewsCard';
 import NewsDetail from './components/NewsDetail';
-import { LogOut, Newspaper, Flame, Heart, Filter, X, User, Edit2, CreditCard, Info, Phone, TrendingUp, Shield } from 'lucide-react';
+import { LogOut, Newspaper, Flame, Heart, Filter, X, User, Edit2, CreditCard, Info, Phone, TrendingUp, Shield, Menu, Activity, Zap } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const NICHOS = ['🔥 Emagrecimento', '🩸 Diabetes', '🧠 Memória', '⚡ Disfunção Erétil'];
@@ -38,6 +38,8 @@ const MOCK_DATA = [
 
 export default function App() {
   const [currentView, setCurrentView] = useState<'home' | 'profile'>('home');
+  const [feedType, setFeedType] = useState<'google' | 'twitter'>('google');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [user, setUser] = useState<any>(undefined);
   const [noticias, setNoticias] = useState<Noticia[]>(MOCK_DATA as any);
   const [loading, setLoading] = useState(true);
@@ -71,8 +73,9 @@ export default function App() {
     }
 
     setLoading(true);
+    const collectionName = feedType === 'twitter' ? 'trends_twitter' : 'noticias';
     const q = query(
-      collection(db, 'noticias'),
+      collection(db, collectionName),
       orderBy('data_publicacao', 'desc'),
       limit(50)
     );
@@ -80,16 +83,30 @@ export default function App() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const news: Noticia[] = [];
       snapshot.forEach((doc) => {
-        news.push({ id: doc.id, ...doc.data() } as Noticia);
+        const data = doc.data();
+        if (feedType === 'twitter') {
+          // Adapt twitter data format to Noticia type structure for the card
+          news.push({ 
+            id: doc.id,
+             ...data,
+             noticia_titulo: data.texto_traduzido || data.texto_original,
+             originalUrl: `https://twitter.com/i/web/status/${data.id_tweet?.replace('twitter_', '')}`,
+             noticia_url: `https://twitter.com/i/web/status/${data.id_tweet?.replace('twitter_', '')}`,
+             title_pt: data.texto_traduzido,
+             author: data.author
+          } as any);
+        } else {
+          news.push({ id: doc.id, ...data } as Noticia);
+        }
       });
       if (news.length === 0) {
-        setNoticias(MOCK_DATA as any);
+        setNoticias(feedType === 'twitter' ? [] : MOCK_DATA as any);
       } else {
         setNoticias(news);
       }
       setLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'noticias');
+      handleFirestoreError(error, OperationType.GET, collectionName);
       setLoading(false);
     });
 
@@ -108,7 +125,7 @@ export default function App() {
       unsubscribe();
       unsubFavs();
     };
-  }, [user]);
+  }, [user, feedType]);
 
   const toggleFavorite = async (noticiaId: string | undefined, isFavorited: boolean) => {
     if (!user || !noticiaId) return;
@@ -406,14 +423,47 @@ export default function App() {
         </div>
       </nav>
 
-      <main className="max-w-5xl mx-auto px-4 mt-8">
-        {currentView === 'profile' ? renderProfileView() : (
-          <>
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">O Feed Secreto do Tráfego Direto</h1>
-                <p className="text-sm text-slate-500 mt-1">Monitore as tendências, novidades e notícias dos EUA e Brasil em tempo real.</p>
-              </div>
+      <div className="flex z-0 relative">
+        {/* Sidebar */}
+        <aside className={`bg-white border-r border-slate-200 min-h-screen transition-all duration-300 flex flex-col pt-6 ${isSidebarOpen ? 'w-64 px-4' : 'w-16 px-2'} hidden sm:flex`}>
+          <button 
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="self-end mb-6 text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-md hover:bg-slate-100"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          
+          <div className="space-y-2">
+            <button
+              onClick={() => setFeedType('google')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors font-medium text-sm ${feedType === 'google' ? 'bg-orange-50 text-orange-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+              title="Radar de Notícias"
+            >
+              <Activity className="w-5 h-5 flex-shrink-0" />
+              {isSidebarOpen && <span>Radar de Notícias</span>}
+            </button>
+            <button
+              onClick={() => setFeedType('twitter')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors font-medium text-sm ${feedType === 'twitter' ? 'bg-orange-50 text-orange-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+              title="Fervura no X (Twitter)"
+            >
+              <Zap className="w-5 h-5 flex-shrink-0 text-amber-500" />
+              {isSidebarOpen && <span>Fervura no X (Twitter)</span>}
+            </button>
+          </div>
+        </aside>
+
+        {/* Dynamic Mobile Toolbar if needed, but per request keeping sidebar desktop mostly, or hidden... */}
+        
+        <div className="flex-1 w-full min-w-0 pb-12">
+          <main className="max-w-5xl mx-auto px-4 mt-8">
+            {currentView === 'profile' ? renderProfileView() : (
+              <>
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h1 className="text-2xl font-bold text-slate-900">O Feed Secreto do Tráfego Direto</h1>
+                    <p className="text-sm text-slate-500 mt-1">{feedType === 'twitter' ? 'Monitore os Post que estão viralizando no X (Twitter) em tempo real.' : 'Monitore as tendências, novidades e notícias dos EUA e Brasil em tempo real.'}</p>
+                  </div>
           
           {/* Mock Button for Devs only (would normally be hidden in prod, keeping it for the requested MVP UX test) */}
           <button 
@@ -557,6 +607,8 @@ export default function App() {
         </>
         )}
       </main>
+      </div>
+      </div>
     </div>
   );
 }

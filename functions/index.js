@@ -36,6 +36,13 @@ const NICHOS_CONFIG = {
   }
 };
 
+const TWITTER_QUERIES = {
+  "Emagrecimento": "weight loss OR ozempic OR mounjaro -is:retweet min_faves:50",
+  "Diabetes": "diabetes OR blood sugar reverse -is:retweet min_faves:50",
+  "Memória": "memory loss OR dementia cure -is:retweet min_faves:50",
+  "Disfunção Erétil": "erectile dysfunction OR low testosterone -is:retweet min_faves:50"
+};
+
 const BLACKLIST_TITULOS = [
   "lula", "trump", "guerra", "eleições", "bolsa de valores", "ações da empresa", 
   "ministério da saúde", "campanha de vacinação", "reforma", "prefeitura", "biden"
@@ -110,8 +117,111 @@ exports.jornalDoDrEngine = onSchedule({
   console.log("Varredura concluída com sucesso.");
 });
 
-// ======= 3. AGENTE GEMINI COPYWRITER (onDocumentCreated) =======
-// Reage exclusivamente no Projeto Específico quando um novo registro puro é inserido
+// ======= 3. FETCH TWITTER TRENDS (onSchedule) =======
+// Executa apenas de segunda a sexta, às 10:00, 1 vez ao dia para salvar créditos.
+exports.fetchTwitterTrends = onSchedule({
+  schedule: "0 10 * * 1-5", 
+  timeZone: "America/Sao_Paulo"
+}, async (event) => {
+  console.log("Iniciando garimpo de Trends do Twitter (X)...");
+  
+  for (const nicho of Object.keys(TWITTER_QUERIES)) {
+    try {
+      const queryStr = TWITTER_QUERIES[nicho];
+      const encodedQuery = encodeURIComponent(queryStr);
+      
+      const response = await fetch(`https://twitter303.p.rapidapi.com/search/timeline?query=${encodedQuery}&search_type=Latest`, {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-host': 'twitter303.p.rapidapi.com',
+          'x-rapidapi-key': '3d9953b3d0mshe452878ba263cffp169816jsn8033a9d9b69a'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erro na API do Twitter: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const tweets = data.timeline || data.results || data.data || [];
+      const validTweets = tweets.slice(0, 5); // Teto de segurança, pegamos 5 recentes
+
+      for (const t of validTweets) {
+        const tweetText = t.text || t.full_text || "";
+        if (!tweetText || !passaFiltroBlacklist(tweetText)) continue;
+        
+        const docId = `twitter_${t.tweet_id || t.id_str || t.id || Buffer.from(tweetText.substring(0,20)).toString('base64')}`;
+        const docRef = db.collection("trends_twitter").doc(docId);
+        
+        const docSnap = await docRef.get();
+        if (docSnap.exists) continue;
+
+        let authorName = "Desconhecido";
+        if (t.user && t.user.name) authorName = t.user.name;
+        else if (t.author && t.author.name) authorName = t.author.name;
+
+        // Mandar pro Gemini antes de salvar!
+        console.log(`[Twitter - Gemini] Traduzindo e gerando hooks para: ${tweetText.substring(0, 50)}...`);
+        
+        const userContent = `Nicho: ${nicho}\nTweet Original (${authorName}): "${tweetText}"\n\nInstruções Obrigatórias:\n1. Você deve traduzir o texto do tweet original para o Português do Brasil com foco em fluidez de leitura.\n2. Gerar "angulo_comercial" (Resumo) explicando como utilizar esse fato como gancho em VSL e Tráfego seguindo o padrão de Markdown exigido.\n3. Atribuir um "hypeScore" entre 0 e 10.`;
+        
+        const baseSystemInstruction = `Você é um Copy Chief Sênior de Direct Response focado em alto CTR, ganchos de curiosidade extrema e narrativas de mecanismo único.
+Para o campo 'angulo_comercial' (Resumo), você DEVE obrigatoriamente gerar um texto longo e rico em formatação Markdown (parágrafos, negritos e tópicos), dividido nas seguintes seções:
+## ANÁLISE MACRO
+Explique os detalhes ocultos da notícia/tweet, o comportamento do público e por que essa informação é um estopim psicológico agora.
+## APLICAÇÃO EM TRAFEGO & VSL
+Explique cirurgicamente como o usuário pode transformar essa notícia/tweet em um ângulo de anúncio (Meta Ads/Native) para tracionar tráfego frio e, principalmente, como usar esse fato como elemento de prova, quebra de padrão ou "Mecanismo Único".`;
+
+        const responseSchema = {
+          type: Type.OBJECT,
+          properties: {
+            texto_traduzido: { type: Type.STRING },
+            hypeScore: { type: Type.INTEGER },
+            gargalo_resolvido: { type: Type.STRING },
+            angulo_comercial: { 
+              type: Type.STRING,
+              description: "Texto longo rico em Markdown, contento obrigatoriamente as seções ## ANÁLISE MACRO e ## APLICAÇÃO EM TRAFEGO & VSL"
+            }
+          },
+          required: ["texto_traduzido", "hypeScore", "gargalo_resolvido", "angulo_comercial"]
+        };
+
+        const aiResponse = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: userContent,
+          config: {
+            systemInstruction: baseSystemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: responseSchema,
+            temperature: 0.7,
+          }
+        });
+
+        const aiResult = JSON.parse(aiResponse.text);
+
+        await docRef.set({
+          id_tweet: docId,
+          nicho: nicho,
+          author: authorName,
+          texto_original: tweetText,
+          texto_traduzido: aiResult.texto_traduzido || tweetText,
+          publishedAt: t.created_at ? admin.firestore.Timestamp.fromDate(new Date(t.created_at)) : admin.firestore.Timestamp.now(),
+          data_publicacao: t.created_at ? admin.firestore.Timestamp.fromDate(new Date(t.created_at)) : admin.firestore.Timestamp.now(),
+          hypeScore: aiResult.hypeScore || 5,
+          copy_angulo: aiResult.angulo_comercial || "",
+          gargalo: aiResult.gargalo_resolvido || ""
+        });
+      }
+
+    } catch (err) {
+      console.error(`Erro no niche Twitter ${nicho}:`, err.message);
+    }
+  }
+  console.log("Garimpo de Twitter Trends concluído.");
+});
+
+// ======= 4. AGENTE GEMINI COPYWRITER (RSS/Firestore Trigger) =======
+// Reage exclusivamente no Projeto Específico quando um novo registro puro é inserido em 'noticias'
 exports.geminiCopywriterAgent = onDocumentCreated({
   document: "noticias/{docId}"
 }, async (event) => {
@@ -212,3 +322,4 @@ Explique cirurgicamente como o usuário pode transformar essa notícia em um ân
     return null;
   }
 });
+

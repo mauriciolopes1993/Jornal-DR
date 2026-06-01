@@ -9,3 +9,21 @@
     display: none; /* Chrome, Safari and Opera */
   }
 }
+
+@layer base {
+  .markdown-body h2 {
+    @apply text-lg font-bold mt-4 mb-2 text-slate-900 uppercase tracking-wide border-b border-orange-200 pb-1;
+  }
+  .markdown-body p {
+    @apply mb-3 text-slate-700 leading-relaxed;
+  }
+  .markdown-body strong {
+    @apply font-bold text-slate-900;
+  }
+  .markdown-body ul {
+    @apply list-disc list-inside mb-4 space-y-1;
+  }
+  .markdown-body li {
+    @apply text-slate-700;
+  }
+}
