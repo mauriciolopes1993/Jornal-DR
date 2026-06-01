@@ -20,27 +20,66 @@ const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 const NICHOS_CONFIG = {
   "Emagrecimento": {
     US: 'https://news.google.com/rss/search?q=("weight+loss"+OR+"fat+burn"+OR+"ozempic"+OR+"mounjaro")+AND+("hollywood"+OR+"celebrity"+OR+"popstar"+OR+"secret"+OR+"banned"+OR+"scandal"+OR+"big+pharma"+OR+"enzyme"+OR+"trick"+OR+"leaked")&hl=en-US&gl=US',
-    BR: 'https://news.google.com/rss/search?q=("emagrecer"+OR+"perder+peso"+OR+"ozempic")+AND+("famosa"+OR+"celebridade"+OR+"hollywood"+OR+"segredo"+OR+"proibido"+OR+"vazou"+OR+"escândalo"+OR+"indústria+farmacêutica"+OR+"médicos"+OR+"truque")&hl=pt-BR&gl=BR'
+    BR: 'https://news.google.com/rss/search?q=("emagrecer"+OR+"perder+peso"+OR+"ozempic")+AND+("famosa"+OR+"celebridade"+OR+"hollywood"+OR+"segredo"+OR+"proibido"+OR+"vazou"+OR+"escândalo"+OR+"indústria+farmacêutica"+OR+"médicos"+OR+"truque")&hl=pt-BR&gl=BR',
+    es_latam: 'https://news.google.com/rss/search?q=(perder+peso+OR+adelgazar+OR+grasa+abdominal+OR+ozempic)+AND+(secreto+OR+revelado+OR+milagro)&hl=es&gl=MX'
   },
   "Diabetes": {
     US: 'https://news.google.com/rss/search?q=("diabetes"+OR+"blood+sugar")+AND+("reverse"+OR+"natural+cure"+OR+"scandal"+OR+"big+pharma"+OR+"metformin"+OR+"hidden"+OR+"doctors"+OR+"banned"+OR+"leaked")&hl=en-US&gl=US',
-    BR: 'https://news.google.com/rss/search?q=("diabetes"+OR+"glicose"+OR+"açúcar+no+sangue")+AND+("reverter"+OR+"cura+natural"+OR+"escândalo"+OR+"indústria+farmacêutica"+OR+"médicos"+OR+"escondido"+OR+"vazou"+OR+"proibido")&hl=pt-BR&gl=BR'
+    BR: 'https://news.google.com/rss/search?q=("diabetes"+OR+"glicose"+OR+"açúcar+no+sangue")+AND+("reverter"+OR+"cura+natural"+OR+"escândalo"+OR+"indústria+farmacêutica"+OR+"médicos"+OR+"escondido"+OR+"vazou"+OR+"proibido")&hl=pt-BR&gl=BR',
+    es_latam: 'https://news.google.com/rss/search?q=(diabetes+OR+insulina+OR+glucosa+alta)+AND+(remedio+OR+secreto+OR+cientificos)&hl=es&gl=MX'
   },
   "Memória": {
     US: 'https://news.google.com/rss/search?q=("memory+loss"+OR+"brain+fog"+OR+"dementia")+AND+("reversal"+OR+"breakthrough"+OR+"hidden+cause"+OR+"root"+OR+"herb"+OR+"secret"+OR+"doctors"+OR+"big+pharma")&hl=en-US&gl=US',
-    BR: 'https://news.google.com/rss/search?q=("perda+de+memória"+OR+"névoa+mental"+OR+"esquecimento")+AND+("reverter"+OR+"descoberta"+OR+"causa+oculta"+OR+"erva"+OR+"raiz"+OR+"segredo"+OR+"médicos"+OR+"vazou")&hl=pt-BR&gl=BR'
+    BR: 'https://news.google.com/rss/search?q=("perda+de+memória"+OR+"névoa+mental"+OR+"esquecimento")+AND+("reverter"+OR+"descoberta"+OR+"causa+oculta"+OR+"erva"+OR+"raiz"+OR+"segredo"+OR+"médicos"+OR+"vazou")&hl=pt-BR&gl=BR',
+    es_latam: 'https://news.google.com/rss/search?q=(memoria+OR+alzheimer+OR+olvido+OR+cerebro)+AND+(truco+OR+descubrimiento+OR+oculto)&hl=es&gl=MX'
   },
   "Disfunção Erétil": {
     US: 'https://news.google.com/rss/search?q=("erectile+dysfunction"+OR+"low+testosterone"+OR+"low+t")+AND+("natural+remedy"+OR+"trick"+OR+"blue+pill"+OR+"danger"+OR+"warning"+OR+"secret"+OR+"hormone"+OR+"doctors")&hl=en-US&gl=US',
-    BR: 'https://news.google.com/rss/search?q=("disfunção+erétil"+OR+"impotência"+OR+"testosterona+baixa")+AND+("remédio+natural"+OR+"truque"+OR+"pílula+azul"+OR+"perigo"+OR+"alerta"+OR+"segredo"+OR+"médicos"+OR+"vazou")&hl=pt-BR&gl=BR'
+    BR: 'https://news.google.com/rss/search?q=("disfunção+erétil"+OR+"impotência"+OR+"testosterona+baixa")+AND+("remédio+natural"+OR+"truque"+OR+"pílula+azul"+OR+"perigo"+OR+"alerta"+OR+"segredo"+OR+"médicos"+OR+"vazou")&hl=pt-BR&gl=BR',
+    es_latam: 'https://news.google.com/rss/search?q=(disfuncion+erectil+OR+testosterona+OR+vigor+masculino)+AND+(secreto+OR+natural+OR+impotencia)&hl=es&gl=MX'
+  }
+};
+
+const REDDIT_QUERIES = {
+  "Emagrecimento": {
+    US: 'https://www.reddit.com/search.rss?q=(weight+loss+OR+fat+loss+OR+ozempic+OR+belly+fat)+AND+(secret+OR+exposed+OR+hack+OR+scandal+OR+conspiracy+OR+celebrity)&sort=hot&t=day',
+    BR: 'https://www.reddit.com/search.rss?q=(emagrecer+OR+perder+peso+OR+secar+barriga)+AND+(segredo+OR+revelado+OR+fofoca+OR+farsa+OR+truque+OR+escondido)&sort=hot&t=day',
+    es_latam: 'https://www.reddit.com/search.rss?q=(perder+peso+OR+adelgazar+OR+ozempic)+AND+(secreto+OR+escandalo+OR+farsa+OR+truco)&sort=hot&t=day'
+  },
+  "Diabetes": {
+    US: 'https://www.reddit.com/search.rss?q=(diabetes+OR+insulin+OR+blood+sugar)+AND+(reverse+OR+cure+OR+hidden+OR+scandal+OR+doctor+OR+secret)&sort=hot&t=day',
+    BR: 'https://www.reddit.com/search.rss?q=(diabetes+OR+insulina+OR+glicose+alta)+AND+(reparar+OR+cura+OR+escondido+OR+segredo+OR+medicos+proibiram)&sort=hot&t=day',
+    es_latam: 'https://www.reddit.com/search.rss?q=(diabetes+OR+insulina+OR+glucosa)+AND+(secreto+OR+remedio+OR+oculto+OR+cura)&sort=hot&t=day'
+  },
+  "Memória": {
+    US: 'https://www.reddit.com/search.rss?q=(memory+OR+brain+fog+OR+alzheimer+OR+cognitive)+AND+(secret+OR+exposed+OR+hack+OR+scandal+OR+cure+OR+reverse+OR+hidden)&sort=hot&t=day',
+    BR: 'https://www.reddit.com/search.rss?q=(memoria+OR+esquecimento+OR+alzheimer+OR+cerebro)+AND+(segredo+OR+revelado+OR+truque+OR+escondido+OR+remedio+OR+cura)&sort=hot&t=day',
+    es_latam: 'https://www.reddit.com/search.rss?q=(memoria+OR+alzheimer+OR+cerebro)+AND+(secreto+OR+truco+OR+revelado+OR+escondido)&sort=hot&t=day'
+  },
+  "Disfunção Erétil": {
+    US: 'https://www.reddit.com/search.rss?q=(erectile+dysfunction+OR+testosterone+OR+ed+OR+libido)+AND+(secret+OR+exposed+OR+hack+OR+scandal+OR+cure+OR+hidden)&sort=hot&t=day',
+    BR: 'https://www.reddit.com/search.rss?q=(disfuncao+eretil+OR+testosterona+OR+impotencia+OR+libido)+AND+(segredo+OR+revelado+OR+truque+OR+escondido+OR+remedio+natural)&sort=hot&t=day',
+    es_latam: 'https://www.reddit.com/search.rss?q=(disfuncion+erectil+OR+testosterona+OR+impotencia)+AND+(secreto+OR+truco+OR+remedio+OR+natural)&sort=hot&t=day'
   }
 };
 
 const TWITTER_QUERIES = {
-  "Emagrecimento": "weight loss OR ozempic OR mounjaro -is:retweet min_faves:50",
-  "Diabetes": "diabetes OR blood sugar reverse -is:retweet min_faves:50",
-  "Memória": "memory loss OR dementia cure -is:retweet min_faves:50",
-  "Disfunção Erétil": "erectile dysfunction OR low testosterone -is:retweet min_faves:50"
+  "Emagrecimento": {
+    US: "weight loss OR ozempic OR mounjaro -is:retweet min_faves:50",
+    es_latam: "(perder peso OR adelgazar OR ozempic) (secreto OR truco OR revelado) lang:es"
+  },
+  "Diabetes": {
+    US: "diabetes OR blood sugar reverse -is:retweet min_faves:50",
+    es_latam: "(diabetes OR insulina OR glucosa) (secreto OR cura OR medicos) lang:es"
+  },
+  "Memória": {
+    US: "memory loss OR dementia cure -is:retweet min_faves:50",
+    es_latam: "(memoria OR alzheimer OR niebla mental) (truco OR secreto OR hack) lang:es"
+  },
+  "Disfunção Erétil": {
+    US: "erectile dysfunction OR low testosterone -is:retweet min_faves:50",
+    es_latam: "(disfuncion erectil OR testosterona OR libido) (secreto OR remedio OR natural) lang:es"
+  }
 };
 
 const BLACKLIST_TITULOS = [
@@ -125,99 +164,186 @@ exports.fetchTwitterTrends = onSchedule({
 }, async (event) => {
   console.log("Iniciando garimpo de Trends do Twitter (X)...");
   
-  for (const nicho of Object.keys(TWITTER_QUERIES)) {
-    try {
-      const queryStr = TWITTER_QUERIES[nicho];
-      const encodedQuery = encodeURIComponent(queryStr);
-      
-      const response = await fetch(`https://twitter303.p.rapidapi.com/search/timeline?query=${encodedQuery}&search_type=Latest`, {
-        method: 'GET',
-        headers: {
-          'x-rapidapi-host': 'twitter303.p.rapidapi.com',
-          'x-rapidapi-key': '3d9953b3d0mshe452878ba263cffp169816jsn8033a9d9b69a'
+  for (const [nicho, mercados] of Object.entries(TWITTER_QUERIES)) {
+    for (const [mercado, queryStr] of Object.entries(mercados)) {
+      try {
+        const encodedQuery = encodeURIComponent(queryStr);
+        
+        const response = await fetch(`https://twitter303.p.rapidapi.com/search/timeline?query=${encodedQuery}&search_type=Latest`, {
+          method: 'GET',
+          headers: {
+            'x-rapidapi-host': 'twitter303.p.rapidapi.com',
+            'x-rapidapi-key': '3d9953b3d0mshe452878ba263cffp169816jsn8033a9d9b69a'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erro na API do Twitter: ${response.statusText}`);
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Erro na API do Twitter: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      const tweets = data.timeline || data.results || data.data || [];
-      const validTweets = tweets.slice(0, 5); // Teto de segurança, pegamos 5 recentes
+        
+        const data = await response.json();
+        const tweets = data.timeline || data.results || data.data || [];
+        const validTweets = tweets.slice(0, 5); // Teto de segurança, pegamos 5 recentes
 
-      for (const t of validTweets) {
-        const tweetText = t.text || t.full_text || "";
-        if (!tweetText || !passaFiltroBlacklist(tweetText)) continue;
-        
-        const docId = `twitter_${t.tweet_id || t.id_str || t.id || Buffer.from(tweetText.substring(0,20)).toString('base64')}`;
-        const docRef = db.collection("trends_twitter").doc(docId);
-        
-        const docSnap = await docRef.get();
-        if (docSnap.exists) continue;
+        for (const t of validTweets) {
+          const tweetText = t.text || t.full_text || "";
+          if (!tweetText || !passaFiltroBlacklist(tweetText)) continue;
+          
+          const docId = `twitter_${t.tweet_id || t.id_str || t.id || Buffer.from(tweetText.substring(0,20)).toString('base64')}`;
+          const docRef = db.collection("trends_twitter").doc(docId);
+          
+          const docSnap = await docRef.get();
+          if (docSnap.exists) continue;
 
-        let authorName = "Desconhecido";
-        if (t.user && t.user.name) authorName = t.user.name;
-        else if (t.author && t.author.name) authorName = t.author.name;
+          let authorName = "Desconhecido";
+          if (t.user && t.user.name) authorName = t.user.name;
+          else if (t.author && t.author.name) authorName = t.author.name;
 
-        // Mandar pro Gemini antes de salvar!
-        console.log(`[Twitter - Gemini] Traduzindo e gerando hooks para: ${tweetText.substring(0, 50)}...`);
-        
-        const userContent = `Nicho: ${nicho}\nTweet Original (${authorName}): "${tweetText}"\n\nInstruções Obrigatórias:\n1. Você deve traduzir o texto do tweet original para o Português do Brasil com foco em fluidez de leitura.\n2. Gerar "angulo_comercial" (Resumo) explicando como utilizar esse fato como gancho em VSL e Tráfego seguindo o padrão de Markdown exigido.\n3. Atribuir um "hypeScore" entre 0 e 10.`;
-        
-        const baseSystemInstruction = `Você é um Copy Chief Sênior de Direct Response focado em alto CTR, ganchos de curiosidade extrema e narrativas de mecanismo único.
+          // Mandar pro Gemini antes de salvar!
+          console.log(`[Twitter - Gemini] Traduzindo e gerando hooks para: ${tweetText.substring(0, 50)}...`);
+          
+          const userContent = `Nicho: ${nicho}\nTweet Original (${authorName}): "${tweetText}"\n\nInstruções Obrigatórias:\n1. Você deve traduzir o texto do tweet original diretamente para o Português do Brasil (PT-BR) com foco em fluidez de leitura.\n2. Gerar "angulo_comercial" (Resumo) explicando como utilizar esse fato como gancho em VSL e Tráfego seguindo o padrão de Markdown exigido.\n3. Atribuir um "hypeScore" entre 0 e 10.`;
+          
+          const baseSystemInstruction = `Você é um Copy Chief Sênior de Direct Response focado em alto CTR, ganchos de curiosidade extrema e narrativas de mecanismo único. Se o texto for em espanhol, destaque os gatilhos psicológicos mais explorados pelo público hispânico.
 Para o campo 'angulo_comercial' (Resumo), você DEVE obrigatoriamente gerar um texto longo e rico em formatação Markdown (parágrafos, negritos e tópicos), dividido nas seguintes seções:
 ## ANÁLISE MACRO
 Explique os detalhes ocultos da notícia/tweet, o comportamento do público e por que essa informação é um estopim psicológico agora.
 ## APLICAÇÃO EM TRAFEGO & VSL
 Explique cirurgicamente como o usuário pode transformar essa notícia/tweet em um ângulo de anúncio (Meta Ads/Native) para tracionar tráfego frio e, principalmente, como usar esse fato como elemento de prova, quebra de padrão ou "Mecanismo Único".`;
 
-        const responseSchema = {
-          type: Type.OBJECT,
-          properties: {
-            texto_traduzido: { type: Type.STRING },
-            hypeScore: { type: Type.INTEGER },
-            gargalo_resolvido: { type: Type.STRING },
-            angulo_comercial: { 
-              type: Type.STRING,
-              description: "Texto longo rico em Markdown, contento obrigatoriamente as seções ## ANÁLISE MACRO e ## APLICAÇÃO EM TRAFEGO & VSL"
+          const responseSchema = {
+            type: Type.OBJECT,
+            properties: {
+              texto_traduzido: { type: Type.STRING },
+              hypeScore: { type: Type.INTEGER },
+              gargalo_resolvido: { type: Type.STRING },
+              angulo_comercial: { 
+                type: Type.STRING,
+                description: "Texto longo rico em Markdown, contento obrigatoriamente as seções ## ANÁLISE MACRO e ## APLICAÇÃO EM TRAFEGO & VSL"
+              }
+            },
+            required: ["texto_traduzido", "hypeScore", "gargalo_resolvido", "angulo_comercial"]
+          };
+
+          const aiResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: userContent,
+            config: {
+              systemInstruction: baseSystemInstruction,
+              responseMimeType: "application/json",
+              responseSchema: responseSchema,
+              temperature: 0.7,
             }
-          },
-          required: ["texto_traduzido", "hypeScore", "gargalo_resolvido", "angulo_comercial"]
-        };
+          });
 
-        const aiResponse = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: userContent,
-          config: {
-            systemInstruction: baseSystemInstruction,
-            responseMimeType: "application/json",
-            responseSchema: responseSchema,
-            temperature: 0.7,
-          }
-        });
+          const aiResult = JSON.parse(aiResponse.text);
 
-        const aiResult = JSON.parse(aiResponse.text);
+          await docRef.set({
+            id_tweet: docId,
+            nicho: nicho,
+            regiao: mercado,
+            author: authorName,
+            texto_original: tweetText,
+            texto_traduzido: aiResult.texto_traduzido || tweetText,
+            publishedAt: t.created_at ? admin.firestore.Timestamp.fromDate(new Date(t.created_at)) : admin.firestore.Timestamp.now(),
+            data_publicacao: t.created_at ? admin.firestore.Timestamp.fromDate(new Date(t.created_at)) : admin.firestore.Timestamp.now(),
+            hypeScore: aiResult.hypeScore || 5,
+            copy_angulo: aiResult.angulo_comercial || "",
+            gargalo: aiResult.gargalo_resolvido || ""
+          });
+        }
 
-        await docRef.set({
-          id_tweet: docId,
-          nicho: nicho,
-          author: authorName,
-          texto_original: tweetText,
-          texto_traduzido: aiResult.texto_traduzido || tweetText,
-          publishedAt: t.created_at ? admin.firestore.Timestamp.fromDate(new Date(t.created_at)) : admin.firestore.Timestamp.now(),
-          data_publicacao: t.created_at ? admin.firestore.Timestamp.fromDate(new Date(t.created_at)) : admin.firestore.Timestamp.now(),
-          hypeScore: aiResult.hypeScore || 5,
-          copy_angulo: aiResult.angulo_comercial || "",
-          gargalo: aiResult.gargalo_resolvido || ""
-        });
+      } catch (err) {
+        console.error(`Erro no niche Twitter ${nicho} (${mercado}):`, err.message);
       }
-
-    } catch (err) {
-      console.error(`Erro no niche Twitter ${nicho}:`, err.message);
     }
   }
   console.log("Garimpo de Twitter Trends concluído.");
+});
+
+// ======= 3.5 FETCH REDDIT TRENDS (onSchedule) =======
+// Executa todos os dias da semana para arbitragem em tempo real
+exports.fetchRedditTrends = onSchedule({
+  schedule: "0 8,20 * * *", 
+  timeZone: "America/Sao_Paulo"
+}, async (event) => {
+  console.log("Iniciando garimpo de Trends do Reddit...");
+  
+  for (const [nicho, mercados] of Object.entries(REDDIT_QUERIES)) {
+    for (const [mercado, urlRss] of Object.entries(mercados)) {
+      try {
+        const feed = await parser.parseURL(urlRss);
+        
+        // Reddit feed returns items sorted by hotness
+        const itensValidos = feed.items
+          .filter(item => passaFiltroBlacklist(item.title))
+          .slice(0, 5);
+
+        for (const item of itensValidos) {
+          const rawText = item.contentSnippet || item.content || item.title;
+          const originalText = `Título: ${item.title}\n\nConteúdo: ${rawText}`;
+          const docId = `reddit_${Buffer.from(item.link).toString('base64').replace(/\//g, '_').substring(0, 50)}`;
+          const docRef = db.collection("trends_reddit").doc(docId);
+          
+          const docSnap = await docRef.get();
+          if (docSnap.exists) continue;
+
+          console.log(`[Reddit - Gemini] Traduzindo e gerando hooks para: ${item.title.substring(0, 50)}...`);
+          
+          const userContent = `Nicho: ${nicho}\nTexto Original do Reddit: "${originalText}"\n\nInstruções Obrigatórias:\n1. Traduzir o texto bruto para Português Brasileiro (PT-BR), focando em fluidez e extraindo a dor visceral/fofoca do post.\n2. Gerar "angulo_comercial" (analise_copy) seguindo as seções obrigatórias.\n3. Atribuir um "hypeScore" entre 0 e 10.`;
+          
+          const baseSystemInstruction = `Você é um Copy Chief Sênior de Direct Response focado em alto CTR. Se o texto original for em espanhol, destaque os gatilhos psicológicos mais explorados pelo público hispânico.
+Para o campo 'angulo_comercial' (analise_copy), você DEVE obrigatoriamente gerar um texto longo e rico em formatação Markdown, dividido exata e rigorosamente nas seguintes seções:
+## ANÁLISE MACRO DO HYPE
+Explique os detalhes ocultos da fofoca/relato, a dor visceral presente no post original, o comportamento do público e por que essa informação é um estopim psicológico agora.
+## APLICAÇÃO EM TRAFEGO & VSL (SUPERESTRUTURA)
+Explique cirurgicamente como o usuário pode transformar essa fofoca/relato em um ângulo de anúncio para tracionar tráfego frio e, principalmente, como usar esse fato como elemento de prova, quebra de padrão ou "Mecanismo Único" dentro de uma VSL.`;
+
+          const responseSchema = {
+            type: Type.OBJECT,
+            properties: {
+              texto_traduzido: { type: Type.STRING },
+              hypeScore: { type: Type.INTEGER },
+              angulo_comercial: { 
+                type: Type.STRING,
+                description: "Texto com as seções ## ANÁLISE MACRO DO HYPE e ## APLICAÇÃO EM TRAFEGO & VSL (SUPERESTRUTURA)"
+              }
+            },
+            required: ["texto_traduzido", "hypeScore", "angulo_comercial"]
+          };
+
+          const aiResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: userContent,
+            config: {
+              systemInstruction: baseSystemInstruction,
+              responseMimeType: "application/json",
+              responseSchema: responseSchema,
+              temperature: 0.7,
+            }
+          });
+
+          const aiResult = JSON.parse(aiResponse.text);
+
+          await docRef.set({
+            id_post: docId,
+            nicho: nicho,
+            regiao: mercado,
+            texto_original: originalText,
+            texto_traduzido: aiResult.texto_traduzido || item.title,
+            publishedAt: item.pubDate ? admin.firestore.Timestamp.fromDate(new Date(item.pubDate)) : admin.firestore.Timestamp.now(),
+            data_publicacao: item.pubDate ? admin.firestore.Timestamp.fromDate(new Date(item.pubDate)) : admin.firestore.Timestamp.now(),
+            hypeScore: aiResult.hypeScore || 5,
+            analise_copy: aiResult.angulo_comercial || "",
+            originalUrl: item.link
+          });
+        }
+      } catch (err) {
+        console.error(`Erro no nicho Reddit ${nicho} (${mercado}):`, err.message);
+      }
+    }
+  }
+  console.log("Garimpo de Reddit concluído.");
 });
 
 // ======= 4. AGENTE GEMINI COPYWRITER (RSS/Firestore Trigger) =======
@@ -236,7 +362,7 @@ exports.geminiCopywriterAgent = onDocumentCreated({
   console.log(`[Gemini Copywriter] Lapidando HYPE para: ${titulo}`);
 
   // Fetch configs from Firestore
-  let baseSystemInstruction = `Você é um Copy Chief Sênior de Direct Response focado em alto CTR, ganchos de curiosidade extrema e narrativas de mecanismo único.
+  let baseSystemInstruction = `Você é um Copy Chief Sênior de Direct Response focado em alto CTR, ganchos de curiosidade extrema e narrativas de mecanismo único. Se o texto for em espanhol, destaque os gatilhos psicológicos mais explorados pelo público hispânico.
 Para o campo 'angulo_comercial' (Resumo), você DEVE obrigatoriamente gerar um texto longo e rico em formatação Markdown (parágrafos, negritos e tópicos), dividido nas seguintes seções:
 
 ## ANÁLISE MACRO

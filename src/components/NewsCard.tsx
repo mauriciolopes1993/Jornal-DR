@@ -9,9 +9,10 @@ interface NewsCardProps {
   onClick: (noticia: Noticia) => void;
   isFavorited?: boolean;
   onToggleFavorite?: (e: React.MouseEvent) => void;
+  feedType?: 'google' | 'twitter' | 'reddit';
 }
 
-export default function NewsCard({ noticia, onClick, isFavorited = false, onToggleFavorite }: NewsCardProps) {
+export default function NewsCard({ noticia, onClick, isFavorited = false, onToggleFavorite, feedType = 'google' }: NewsCardProps) {
   const [relativeTime, setRelativeTime] = React.useState('');
 
   React.useEffect(() => {
@@ -50,10 +51,17 @@ export default function NewsCard({ noticia, onClick, isFavorited = false, onTogg
   }, [noticia.publishedAt, noticia.data_publicacao]);
 
   // Location Badge logic
-  const getLocationBadge = (mercado: string) => {
-    if (mercado === 'US' || mercado.includes('EUA')) return '🇺🇸 EUA';
-    if (mercado === 'BR' || mercado.includes('BR')) return '🇧🇷 BR';
-    return mercado;
+  const getLocationBadge = (mercado: string, nicho: string) => {
+    let loc = mercado;
+    if (mercado === 'US' || mercado?.includes('EUA')) loc = 'EUA';
+    if (mercado === 'BR' || mercado?.includes('BR')) loc = 'BR';
+    if (mercado === 'es_latam') loc = 'LATAM';
+    
+    if (feedType === 'reddit') {
+      const cleanNicho = nicho.replace(/[^a-zA-Z\sÀ-ÿ]/g, '').trim();
+      return `REDDIT ${loc} / ${cleanNicho}`;
+    }
+    return loc === 'EUA' ? '🇺🇸 EUA' : loc === 'BR' ? '🇧🇷 BR' : loc === 'LATAM' ? '🇪🇸 LATAM' : loc;
   };
 
   // Hype Score coloring logic
@@ -101,7 +109,7 @@ export default function NewsCard({ noticia, onClick, isFavorited = false, onTogg
       <div className="p-4 flex flex-col flex-grow gap-3">
         <div className="flex justify-between items-start">
           <span className="text-[10px] bg-slate-900 text-white px-2 py-0.5 rounded uppercase font-bold tracking-wide">
-            {getLocationBadge(noticia.mercado)}
+            {getLocationBadge(noticia.mercado || '', noticia.nicho || '')}
           </span>
           
           <a

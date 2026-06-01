@@ -6,7 +6,7 @@ import type { Noticia } from './types';
 import LoginScreen from './components/LoginScreen';
 import NewsCard from './components/NewsCard';
 import NewsDetail from './components/NewsDetail';
-import { LogOut, Newspaper, Flame, Heart, Filter, X, User, Edit2, CreditCard, Info, Phone, TrendingUp, Shield, Menu, Activity, Zap } from 'lucide-react';
+import { LogOut, Newspaper, Flame, Heart, Filter, X, User, Edit2, CreditCard, Info, Phone, TrendingUp, Shield, Menu, Activity, Zap, PanelLeft, PanelLeftClose, MessageSquare } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const NICHOS = ['🔥 Emagrecimento', '🩸 Diabetes', '🧠 Memória', '⚡ Disfunção Erétil'];
@@ -38,15 +38,16 @@ const MOCK_DATA = [
 
 export default function App() {
   const [currentView, setCurrentView] = useState<'home' | 'profile'>('home');
-  const [feedType, setFeedType] = useState<'google' | 'twitter'>('google');
+  const [feedType, setFeedType] = useState<'google' | 'twitter' | 'reddit'>('google');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(undefined);
   const [noticias, setNoticias] = useState<Noticia[]>(MOCK_DATA as any);
   const [loading, setLoading] = useState(true);
   const [activeNicho, setActiveNicho] = useState(NICHOS[0]);
   const [selectedNoticia, setSelectedNoticia] = useState<Noticia | null>(null);
 
-  const [filterMarket, setFilterMarket] = useState<'ALL' | 'US' | 'BR'>('ALL');
+  const [filterMarket, setFilterMarket] = useState<'ALL' | 'US' | 'BR' | 'es_latam'>('ALL');
   const [filterPeriod, setFilterPeriod] = useState<'TODOS' | 'HOJE' | '7D' | '30D' | '90D' | 'CUSTOM'>('HOJE');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -73,7 +74,7 @@ export default function App() {
     }
 
     setLoading(true);
-    const collectionName = feedType === 'twitter' ? 'trends_twitter' : 'noticias';
+    const collectionName = feedType === 'twitter' ? 'trends_twitter' : feedType === 'reddit' ? 'trends_reddit' : 'noticias';
     const q = query(
       collection(db, collectionName),
       orderBy('data_publicacao', 'desc'),
@@ -95,12 +96,26 @@ export default function App() {
              title_pt: data.texto_traduzido,
              author: data.author
           } as any);
+        } else if (feedType === 'reddit') {
+          // Adapt reddit data format to Noticia type
+          const link = doc.id.replace('reddit_', '');
+          const originalLink = Buffer.from(link, 'base64').toString('ascii'); // Not exactly accurate if it had slashes replaced, but close enough. The real URL isn't natively available unless we saved it. Wait, link isn't directly usable here if we replaced '/'. But we can use google search link. Wait, we should save originalUrl in the backend!
+          news.push({
+            id: doc.id,
+            ...data,
+            noticia_titulo: data.texto_traduzido || data.texto_original,
+            originalUrl: data.originalUrl || "",
+            noticia_url: data.noticia_url || "",
+            copy_angulo: data.analise_copy || "",
+            title_pt: data.texto_traduzido,
+            mercado: data.regiao
+          } as any);
         } else {
           news.push({ id: doc.id, ...data } as Noticia);
         }
       });
       if (news.length === 0) {
-        setNoticias(feedType === 'twitter' ? [] : MOCK_DATA as any);
+        setNoticias(feedType === 'google' ? MOCK_DATA as any : []);
       } else {
         setNoticias(news);
       }
@@ -175,6 +190,7 @@ export default function App() {
       // Filter by market
       if (filterMarket === 'US' && !(n.mercado === 'US' || (n.mercado && n.mercado.includes('EUA')))) return false;
       if (filterMarket === 'BR' && !(n.mercado === 'BR' || (n.mercado && n.mercado.includes('BR')))) return false;
+      if (filterMarket === 'es_latam' && n.mercado !== 'es_latam') return false;
 
       // Filter by favorites
       if (showOnlyFavorites && !favorites[n.id || '']) return false;
@@ -378,7 +394,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f1f5f9] pb-12 font-sans text-slate-900">
       {/* Navbar Minimalista */}
-      <nav className="bg-slate-900 border-b border-slate-800 text-slate-300 sticky top-0 z-10 w-full">
+      <nav className="bg-slate-900 border-b border-slate-800 text-slate-300 sticky top-0 z-10 w-full relative">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center cursor-pointer" onClick={() => setCurrentView('home')}>
             <img 
@@ -387,12 +403,14 @@ export default function App() {
               className="h-12 w-auto object-contain" 
             />
           </div>
-          <div className="flex items-center space-x-6">
+          
+          {/* Desktop Nav */}
+          <div className="hidden sm:flex items-center space-x-6">
             {currentView === 'profile' && (
               <>
                 <button 
                   onClick={() => setCurrentView('home')} 
-                  className={`text-sm font-medium transition-colors ${currentView === 'home' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
+                  className="text-sm font-medium transition-colors text-slate-400 hover:text-white"
                 >
                   Home
                 </button>
@@ -407,7 +425,11 @@ export default function App() {
               </>
             )}
             <button 
-              onClick={logout}
+              onClick={() => {
+                if (window.confirm('Tem certeza que deseja sair?')) {
+                  logout();
+                }
+              }}
               className="text-slate-400 hover:text-white transition-colors flex items-center text-sm font-medium"
             >
               <LogOut className="w-4 h-4 mr-1.5" />
@@ -420,7 +442,73 @@ export default function App() {
               ML
             </button>
           </div>
+
+          {/* Mobile Nav Toggle */}
+          <div className="flex sm:hidden items-center">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="text-slate-300 hover:text-white transition-colors p-2 -mr-2"
+            >
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Nav Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="sm:hidden bg-slate-800 border-t border-slate-700 px-4 py-4 space-y-4 shadow-xl absolute w-full left-0 top-16 z-20">
+            <button 
+              onClick={() => { setCurrentView('home'); setSelectedNoticia(null); setIsMobileMenuOpen(false); }}
+              className={`block w-full text-left text-sm font-medium transition-colors ${currentView === 'home' && !selectedNoticia ? 'text-white' : 'text-slate-400 active:text-white'}`}
+            >
+              Home
+            </button>
+            <button 
+              onClick={() => { setFeedType('google'); setCurrentView('home'); setSelectedNoticia(null); setIsMobileMenuOpen(false); }}
+              className={`block w-full text-left text-sm font-medium transition-colors gap-2 flex items-center ${feedType === 'google' && currentView === 'home' && !selectedNoticia ? 'text-orange-400' : 'text-slate-400 active:text-white'}`}
+            >
+              Radar de Notícias
+            </button>
+            <button 
+              onClick={() => { setFeedType('twitter'); setCurrentView('home'); setSelectedNoticia(null); setIsMobileMenuOpen(false); }}
+              className={`block w-full text-left text-sm font-medium transition-colors gap-2 flex items-center ${feedType === 'twitter' && currentView === 'home' && !selectedNoticia ? 'text-orange-400' : 'text-slate-400 active:text-white'}`}
+            >
+              Fervura no X (Twitter)
+            </button>
+            <button 
+              onClick={() => { setFeedType('reddit'); setCurrentView('home'); setSelectedNoticia(null); setIsMobileMenuOpen(false); }}
+              className={`block w-full text-left text-sm font-medium transition-colors gap-2 flex items-center ${feedType === 'reddit' && currentView === 'home' && !selectedNoticia ? 'text-orange-400' : 'text-slate-400 active:text-white'}`}
+            >
+              Bastidores do Reddit
+            </button>
+            <button 
+              onClick={() => { setCurrentView('profile'); setIsMobileMenuOpen(false); }}
+              className={`block w-full text-left text-sm font-medium transition-colors ${currentView === 'profile' ? 'text-white' : 'text-slate-400 active:text-white'}`}
+            >
+              Minha Conta
+            </button>
+            <a 
+              href="https://wa.me/5534996337785" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block w-full text-left text-sm font-medium text-slate-400 active:text-white transition-colors"
+            >
+              Ajuda
+            </a>
+            <div className="h-px bg-slate-700 my-2 w-full"></div>
+            <button 
+              onClick={() => {
+                if (window.confirm('Tem certeza que deseja sair?')) {
+                  logout();
+                }
+              }}
+              className="block w-full text-left text-slate-400 active:text-red-400 transition-colors flex items-center text-sm font-medium"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </button>
+          </div>
+        )}
       </nav>
 
       <div className="flex z-0 relative">
@@ -430,12 +518,12 @@ export default function App() {
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="self-end mb-6 text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-md hover:bg-slate-100"
           >
-            <Menu className="w-5 h-5" />
+            <PanelLeft className="w-6 h-6 text-slate-500" />
           </button>
           
           <div className="space-y-2">
             <button
-              onClick={() => setFeedType('google')}
+              onClick={() => { setFeedType('google'); setCurrentView('home'); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors font-medium text-sm ${feedType === 'google' ? 'bg-orange-50 text-orange-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
               title="Radar de Notícias"
             >
@@ -443,12 +531,20 @@ export default function App() {
               {isSidebarOpen && <span>Radar de Notícias</span>}
             </button>
             <button
-              onClick={() => setFeedType('twitter')}
+              onClick={() => { setFeedType('twitter'); setCurrentView('home'); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors font-medium text-sm ${feedType === 'twitter' ? 'bg-orange-50 text-orange-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
               title="Fervura no X (Twitter)"
             >
               <Zap className="w-5 h-5 flex-shrink-0 text-amber-500" />
               {isSidebarOpen && <span>Fervura no X (Twitter)</span>}
+            </button>
+            <button
+              onClick={() => { setFeedType('reddit'); setCurrentView('home'); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors font-medium text-sm ${feedType === 'reddit' ? 'bg-orange-50 text-orange-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+              title="Bastidores do Reddit"
+            >
+              <MessageSquare className="w-5 h-5 flex-shrink-0 text-rose-500" />
+              {isSidebarOpen && <span>Bastidores do Reddit</span>}
             </button>
           </div>
         </aside>
@@ -461,8 +557,16 @@ export default function App() {
               <>
                 <div className="flex items-center justify-between mb-8">
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900">O Feed Secreto do Tráfego Direto</h1>
-                    <p className="text-sm text-slate-500 mt-1">{feedType === 'twitter' ? 'Monitore os Post que estão viralizando no X (Twitter) em tempo real.' : 'Monitore as tendências, novidades e notícias dos EUA e Brasil em tempo real.'}</p>
+                    <h1 className="text-2xl font-bold text-slate-900">
+                      O Feed Secreto do Tráfego Direto
+                    </h1>
+                    <p className="text-sm text-slate-500 mt-1">
+                      {feedType === 'reddit' 
+                        ? 'Monitore os escândalos e fofocas virais no Reddit em tempo real.'
+                        : feedType === 'twitter' 
+                          ? 'Monitore os Post que estão viralizando no X (Twitter) em tempo real.' 
+                          : 'Monitore as tendências, novidades e notícias dos EUA e Brasil em tempo real.'}
+                    </p>
                   </div>
           
           {/* Mock Button for Devs only (would normally be hidden in prod, keeping it for the requested MVP UX test) */}
@@ -529,6 +633,7 @@ export default function App() {
             <option value="ALL">País: Todos</option>
             <option value="US">🇺🇸 Estados Unidos</option>
             <option value="BR">🇧🇷 Brasil</option>
+            <option value="es_latam">🇪🇸 Latam</option>
           </select>
 
           <button
@@ -596,6 +701,7 @@ export default function App() {
                 noticia={noticia} 
                 onClick={setSelectedNoticia} 
                 isFavorited={!!favorites[noticia.id || '']}
+                feedType={feedType}
                 onToggleFavorite={(e) => {
                   e.stopPropagation();
                   toggleFavorite(noticia.id, !!favorites[noticia.id || '']);
