@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot, limit, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, limit, addDoc, serverTimestamp, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth, logout } from './lib/firebase';
 import { handleFirestoreError, OperationType } from './lib/error';
 import type { Noticia } from './types';
 import LoginScreen from './components/LoginScreen';
 import NewsCard from './components/NewsCard';
 import NewsDetail from './components/NewsDetail';
-import { LogOut, Newspaper, Flame } from 'lucide-react';
+import { LogOut, Newspaper, Flame, Heart, Filter, X } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const NICHOS = ['🔥 Emagrecimento', '🩸 Diabetes', '🧠 Memória', '⚡ Disfunção Erétil'];
@@ -42,6 +42,14 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [activeNicho, setActiveNicho] = useState(NICHOS[0]);
   const [selectedNoticia, setSelectedNoticia] = useState<Noticia | null>(null);
+
+  const [filterMarket, setFilterMarket] = useState<'ALL' | 'US' | 'BR'>('ALL');
+  const [filterPeriod, setFilterPeriod] = useState<'TODOS' | 'HOJE' | '7D' | '30D' | '90D' | 'CUSTOM'>('HOJE');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [sortByScore, setSortByScore] = useState(false);
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     // Bypass de login temporário para preview no AI Studio
@@ -84,8 +92,36 @@ export default function App() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    const favQuery = query(collection(db, `usuarios/${user.uid}/favoritos`));
+    const unsubFavs = onSnapshot(favQuery, (snapshot) => {
+      const favMap: Record<string, boolean> = {};
+      snapshot.forEach(doc => {
+        favMap[doc.id] = true;
+      });
+      setFavorites(favMap);
+    }, (error) => {
+        console.error("Erro ao puxar favoritos", error);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubFavs();
+    };
   }, [user]);
+
+  const toggleFavorite = async (noticiaId: string | undefined, isFavorited: boolean) => {
+    if (!user || !noticiaId) return;
+    try {
+      const favRef = doc(db, `usuarios/${user.uid}/favoritos/${noticiaId}`);
+      if (isFavorited) {
+        await deleteDoc(favRef);
+      } else {
+        await setDoc(favRef, { savedAt: serverTimestamp() });
+      }
+    } catch (e) {
+      console.error("Erro ao alterar favorito", e);
+    }
+  };
 
   // Seed mock data for demonstration
   const handleSeedMockData = async () => {
@@ -114,6 +150,57 @@ export default function App() {
     }
   };
 
+  const filteredNoticias = React.useMemo(() => {
+    return noticias.filter(n => {
+      if (n.nicho !== activeNicho) return false;
+      
+      // Filter by market
+      if (filterMarket === 'US' && !(n.mercado === 'US' || (n.mercado && n.mercado.includes('EUA')))) return false;
+      if (filterMarket === 'BR' && !(n.mercado === 'BR' || (n.mercado && n.mercado.includes('BR')))) return false;
+
+      // Filter by favorites
+      if (showOnlyFavorites && !favorites[n.id || '']) return false;
+
+      // Filter by period
+      if (filterPeriod !== 'TODOS') {
+        const dateField = n.publishedAt || n.data_publicacao || 0;
+        const time = typeof dateField?.toMillis === 'function' ? dateField.toMillis() : (dateField?.seconds ? dateField.seconds * 1000 : new Date(dateField).getTime());
+        const now = Date.now();
+        const diffDays = (now - time) / (1000 * 60 * 60 * 24);
+
+        if (filterPeriod === 'HOJE' && diffDays > 1) return false;
+        if (filterPeriod === '7D' && diffDays > 7) return false;
+        if (filterPeriod === '30D' && diffDays > 30) return false;
+        if (filterPeriod === '90D' && diffDays > 90) return false;
+        
+        if (filterPeriod === 'CUSTOM' && customStartDate && customEndDate) {
+          const start = new Date(customStartDate + "T00:00:00").getTime();
+          const end = new Date(customEndDate + "T23:59:59").getTime();
+          if (time < start || time > end) return false;
+        }
+      }
+
+      return true;
+    }).sort((a, b) => {
+      if (sortByScore) {
+        const scoreA = a.hypeScore || 0;
+        const scoreB = b.hypeScore || 0;
+        if (scoreA !== scoreB) {
+          return scoreB - scoreA; // Descending score
+        }
+      }
+      
+      // Default sorting: Chronological descending by publishedAt (fallback to data_publicacao)
+      const dateA = a.publishedAt || a.data_publicacao || 0;
+      const dateB = b.publishedAt || b.data_publicacao || 0;
+      
+      const timeA = typeof dateA?.toMillis === 'function' ? dateA.toMillis() : (dateA?.seconds ? dateA.seconds * 1000 : new Date(dateA).getTime());
+      const timeB = typeof dateB?.toMillis === 'function' ? dateB.toMillis() : (dateB?.seconds ? dateB.seconds * 1000 : new Date(dateB).getTime());
+      
+      return timeB - timeA;
+    });
+  }, [noticias, activeNicho, filterMarket, filterPeriod, customStartDate, customEndDate, sortByScore, showOnlyFavorites, favorites]);
+
   if (user === undefined) {
     return <div className="min-h-screen bg-[#f1f5f9] flex items-center justify-center">
        <span className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></span>
@@ -128,7 +215,14 @@ export default function App() {
     return <NewsDetail noticia={selectedNoticia} onBack={() => setSelectedNoticia(null)} />;
   }
 
-  const filteredNoticias = noticias.filter(n => n.nicho === activeNicho);
+  const clearFilters = () => {
+    setFilterMarket('ALL');
+    setFilterPeriod('HOJE');
+    setCustomStartDate('');
+    setCustomEndDate('');
+    setSortByScore(false);
+    setShowOnlyFavorites(false);
+  };
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] pb-12 font-sans text-slate-900">
@@ -168,7 +262,7 @@ export default function App() {
         </div>
 
         {/* Tabs de Nicho */}
-        <div className="flex overflow-x-auto hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 mb-8 space-x-2">
+        <div className="flex overflow-x-auto hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 mb-6 space-x-2">
           {NICHOS.map((nicho) => (
             <button
               key={nicho}
@@ -183,6 +277,76 @@ export default function App() {
               <span>{nicho.split(' ').slice(1).join(' ')}</span>
             </button>
           ))}
+        </div>
+        
+        {/* Barra de Filtros Avançados */}
+        <div className="flex flex-wrap items-center gap-3 mb-8">
+          <select 
+            value={filterPeriod}
+            onChange={(e) => setFilterPeriod(e.target.value as any)}
+            className="bg-white border border-slate-200 text-slate-600 text-sm rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-slate-200 transition-shadow appearance-none pr-8 relative cursor-pointer min-w-[140px]"
+            style={{ 
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, 
+              backgroundPosition: `right 0.5rem center`, 
+              backgroundRepeat: `no-repeat`, 
+              backgroundSize: `1.2em 1.2em`
+            }}
+          >
+            <option value="TODOS">Período: Todos</option>
+            <option value="HOJE">Hoje</option>
+            <option value="7D">Últimos 7 dias</option>
+            <option value="30D">Últimos 30 dias</option>
+            <option value="90D">Últimos 90 dias</option>
+            <option value="CUSTOM">Personalizado</option>
+          </select>
+          
+          <select 
+            value={filterMarket}
+            onChange={(e) => setFilterMarket(e.target.value as any)}
+            className="bg-white border border-slate-200 text-slate-600 text-sm rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-slate-200 transition-shadow appearance-none pr-8 cursor-pointer min-w-[130px]"
+            style={{ 
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, 
+              backgroundPosition: `right 0.5rem center`, 
+              backgroundRepeat: `no-repeat`, 
+              backgroundSize: `1.2em 1.2em`
+            }}
+          >
+            <option value="ALL">País: Todos</option>
+            <option value="US">🇺🇸 Estados Unidos</option>
+            <option value="BR">🇧🇷 Brasil</option>
+          </select>
+
+          <button
+             onClick={() => setSortByScore(!sortByScore)}
+             className={`px-3 py-2 text-sm font-medium rounded-md border transition-colors flex items-center gap-1.5
+               ${sortByScore ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-white text-slate-600 border-slate-200 hover:border-orange-300'}
+             `}
+          >
+            <Flame className="w-4 h-4" /> Maior Score
+          </button>
+
+          <button
+             onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+             className={`px-3 py-2 text-sm font-medium rounded-md border transition-colors flex items-center gap-1.5
+               ${showOnlyFavorites ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white text-slate-600 border-slate-200 hover:border-red-300'}
+             `}
+          >
+             Apenas Favoritos <Heart className="w-4 h-4" fill={showOnlyFavorites ? "currentColor" : "none"} color={showOnlyFavorites ? "currentColor" : "#ef4444"} />
+          </button>
+          
+          {filterPeriod === 'CUSTOM' && (
+            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-md px-2 py-1.5 ml-2">
+              <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} className="text-sm outline-none text-slate-600 bg-transparent" />
+              <span className="text-slate-400 text-sm">até</span>
+              <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="text-sm outline-none text-slate-600 bg-transparent" />
+            </div>
+          )}
+
+          {(filterMarket !== 'ALL' || sortByScore || showOnlyFavorites || filterPeriod !== 'HOJE' || customStartDate || customEndDate) && (
+            <button onClick={clearFilters} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-md transition-colors flex items-center gap-1 text-sm font-medium ml-auto" title="Limpar Filtros">
+              <X className="w-4 h-4" /> Limpar Filtros
+            </button>
+          )}
         </div>
 
         {/* Feed de Notícias (Grid) */}
@@ -217,6 +381,11 @@ export default function App() {
                 key={noticia.id} 
                 noticia={noticia} 
                 onClick={setSelectedNoticia} 
+                isFavorited={!!favorites[noticia.id || '']}
+                onToggleFavorite={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(noticia.id, !!favorites[noticia.id || '']);
+                }}
               />
             ))}
           </div>

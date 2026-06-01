@@ -1,28 +1,53 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ExternalLink, Flame } from 'lucide-react';
+import { ExternalLink, Flame, Heart } from 'lucide-react';
 import type { Noticia } from '../types';
 
 interface NewsCardProps {
   noticia: Noticia;
   onClick: (noticia: Noticia) => void;
+  isFavorited?: boolean;
+  onToggleFavorite?: (e: React.MouseEvent) => void;
 }
 
-export default function NewsCard({ noticia, onClick }: NewsCardProps) {
-  // Timestamp logic using publishedAt with fallback to data_publicacao
-  let pubDate: Date | null = null;
-  const dateField = noticia.publishedAt || noticia.data_publicacao;
-  
-  if (dateField) {
-    if (typeof dateField.toDate === 'function') {
-      pubDate = dateField.toDate();
-    } else if (dateField.seconds) {
-      pubDate = new Date(dateField.seconds * 1000);
-    } else {
-      pubDate = new Date(dateField);
+export default function NewsCard({ noticia, onClick, isFavorited = false, onToggleFavorite }: NewsCardProps) {
+  const [relativeTime, setRelativeTime] = React.useState('');
+
+  React.useEffect(() => {
+    let pubDate: Date | null = null;
+    const dateField = noticia.publishedAt || noticia.data_publicacao;
+    if (dateField) {
+      if (typeof dateField.toDate === 'function') {
+        pubDate = dateField.toDate();
+      } else if (dateField.seconds) {
+        pubDate = new Date(dateField.seconds * 1000);
+      } else {
+        pubDate = new Date(dateField);
+      }
     }
-  }
+
+    const updateTime = () => {
+      if (pubDate) {
+        // Formatar e limpar o texto para ficar mais exato (ex: "há cerca de" -> "há")
+        let text = formatDistanceToNow(pubDate, { addSuffix: true, locale: ptBR });
+        text = text.replace('cerca de ', '').replace('aproximadamente ', '');
+        
+        // Capitalize first letter
+        if (text) {
+          text = text.charAt(0).toUpperCase() + text.slice(1);
+        }
+        
+        setRelativeTime(text);
+      } else {
+        setRelativeTime('');
+      }
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 60000); // Atualiza a cada 1 min
+    return () => clearInterval(interval);
+  }, [noticia.publishedAt, noticia.data_publicacao]);
 
   // Location Badge logic
   const getLocationBadge = (mercado: string) => {
@@ -61,6 +86,16 @@ export default function NewsCard({ noticia, onClick }: NewsCardProps) {
             <span className="text-slate-400 font-medium text-sm">Sem imagem</span>
           </div>
         )}
+        
+        {/* Botão de Favorito overlay */}
+        <button 
+          onClick={onToggleFavorite}
+          className={`absolute top-3 right-3 p-2 rounded-full cursor-pointer transition-all shadow-sm
+            ${isFavorited ? 'bg-red-50 text-red-500' : 'bg-white/80 text-slate-400 hover:bg-white hover:text-red-500'}
+          `}
+        >
+          <Heart className="w-4 h-4" fill={isFavorited ? "currentColor" : "none"} />
+        </button>
       </div>
 
       <div className="p-4 flex flex-col flex-grow gap-3">
@@ -98,7 +133,7 @@ export default function NewsCard({ noticia, onClick }: NewsCardProps) {
               Fonte: {new URL(verNoticiaUrl || 'https://google.com').hostname.replace('www.', '')}
             </span>
             <span className="capitalize text-slate-500 font-medium mt-0.5">
-              {pubDate ? formatDistanceToNow(pubDate, { addSuffix: true, locale: ptBR }) : ''}
+              {relativeTime}
             </span>
           </div>
         </div>
