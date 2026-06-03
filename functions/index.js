@@ -4,9 +4,9 @@ const admin = require("firebase-admin");
 const Parser = require("rss-parser");
 const { GoogleGenAI, Type } = require("@google/genai");
 
-// Inicialização Firebase com Vínculo Explícito
+// Inicialização Firebase (Atualizado para o projeto solicitado pelo usuário)
 admin.initializeApp({
-  projectId: "637642955718"
+  projectId: "jornal-dr"
 });
 
 const db = admin.firestore();
