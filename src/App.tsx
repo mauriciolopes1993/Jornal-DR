@@ -159,11 +159,8 @@ export default function App() {
   // Seed mock data for demonstration
 const handleSeedMockData = async () => {
   try {
-    // Dispara o robô real na Netlify em segundo plano
+    // Dispara o robô real na Netlify de forma 100% invisível e silenciosa
     fetch('https://radardoroi.netlify.app/.netlify/functions/jornal-engine-background');
-    
-    // Avisa na tela que o motor ligou
-    alert('🔥 Motor DR Ativado! As cópias reais do Gemini vão brotar no painel em instantes. Dê F5 na página em 1 minuto.');
   } catch (error) {
     console.error('Erro ao acionar o motor:', error);
   }
