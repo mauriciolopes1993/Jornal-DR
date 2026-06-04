@@ -157,31 +157,17 @@ export default function App() {
   };
 
   // Seed mock data for demonstration
-  const handleSeedMockData = async () => {
-    try {
-      const mockData = {
-        nicho: NICHOS[0], // Emagrecimento
-        mercado: "EUA 🇺🇸",
-        noticia_titulo: "Ozempic shortages hit record high as millions seek weight loss solutions",
-        noticia_url: "https://example.com/ozempic-shortage",
-        trends_keywords: ["ozempic alternative", "weight loss peptides", "berberine"],
-        trends_porcentagem: "+850%",
-        copy_angulo: "O ângulo principal deve focar no DESESPERO da falta de estoque das farmácias. Mostre que Hollywood e os bilionários estão esgotando os recursos e oferte a sua solução como o 'Plano de Fuga' natural que não depende de prescrição e nunca faltará.",
-        copy_ganchos: [
-          "As farmácias estão escondendo isso de você? O real motivo das prateleiras vazias nesta semana...",
-          "Bilionários estão esgotando o estoque. Veja o 'truque' de 5 segundos que eles querem que você ignore.",
-          "Sem receita e sem filas: A substância alternativa que secou meu abdômen em 21 dias."
-        ]
-      };
-      await addDoc(collection(db, 'noticias'), {
-        ...mockData,
-        data_publicacao: serverTimestamp()
-      });
-    } catch (e) {
-      console.error(e);
-      alert('Erro ao semear dados: Você provavelmente não tem permissão de escrita, o que é esperado e seguro!');
-    }
-  };
+const handleSeedMockData = async () => {
+  try {
+    // Dispara o robô real na Netlify em segundo plano
+    fetch('https://radardoroi.netlify.app/.netlify/functions/jornal-engine-background');
+    
+    // Avisa na tela que o motor ligou
+    alert('🔥 Motor DR Ativado! As cópias reais do Gemini vão brotar no painel em instantes. Dê F5 na página em 1 minuto.');
+  } catch (error) {
+    console.error('Erro ao acionar o motor:', error);
+  }
+};
 
   const filteredNoticias = React.useMemo(() => {
     return noticias.filter(n => {
