@@ -168,7 +168,7 @@ const handleSeedMockData = async () => {
 
   const filteredNoticias = React.useMemo(() => {
     return noticias.filter(n => {
-      if (n.nicho !== activeNicho) return false;
+     if (!activeNicho.includes(n.nicho)) return false;
       
       // Filter by market
       if (filterMarket === 'US' && !(n.mercado === 'US' || (n.mercado && n.mercado.includes('EUA')))) return false;
